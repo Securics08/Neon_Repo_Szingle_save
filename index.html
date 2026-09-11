@@ -1,55 +1,348 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-<meta charset="UTF-8"> <title>Neon Jegyzet - Memória Reset - 500MB</title> <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script> <style>
-  body{ margin:0; background:#0a0a0a; color:#fff; font-family:Arial, sans-serif; } .container{ display:flex; height:100vh; } .main{ flex:1; padding:20px; display:flex; flex-direction:column; } .editor{ flex:1; background:#050505; border:1px solid #333; border-radius:6px; padding:10px; font-size:18px; color:white; overflow-y:auto; } /* Memória kijelző */
-  .storage-container { margin-bottom: 20px; padding: 10px; border: 1px solid #444; border-radius: 8px; } .storage-bar-bg { width: 100%; height: 20px; background: #222; border-radius: 10px; overflow: hidden; border: 1px solid #555; } #storageBarFill { height: 100%; width: 0%; transition: width 0.5s ease; } #storageText { font-size: 18px; font-weight: bold; margin-bottom: 8px; } .btn-reset { background: #ff0000; color: white; padding: 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; width: 100%; } .btn-reset:hover { background: #cc0000; } .toolbar { margin-bottom: 10px; display: flex; gap: 10px; } button { padding: 8px 15px; cursor: pointer; background: #111; color: white; border: 1px solid #444; border-radius: 4px; } </style>
+<meta charset="UTF-8"> <title>Neon Jegyzet - Full Font & Color Fix</title> 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script> 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Monoton&family=Pinyon+Script&family=Nabla&family=Bungee+Shade&family=Ewert&family=Vast+Shadow&family=Creepster&family=Lobster&family=Righteous&family=Faster+One&family=Special+Elite&family=Orbitron&family=Pacifico&family=Press+Start+2P&family=Permanent+Marker&family=Sacramento&family=Silkscreen&family=Codystar&family=Megrim&family=Fredericka+the+Great&family=UnifrakturMaguntia&family=Wallpoet&family=Syncopate&family=Fascinate+Inline&family=Nosifer&family=Rubik+Glitch&family=Bangers&family=Alumni+Sans+Inline+One&family=Iceberg&family=Glass+Antiqua&family=Kranky&family=Great+Vibes&family=Bruno+Ace+SC&family=VT323&family=Montserrat&family=Nunito&family=Oswald&family=Playfair+Display&family=Spectral&family=Ultra&family=Varela+Round&family=Alegreya&family=Roboto+Serif&family=Roboto+Mono&display=swap" rel="stylesheet"> 
+<style>
+  body{ margin:0; background:#0a0a0a; color:#fff; font-family:Arial, sans-serif; transition: background 0.3s; }
+  .container{ display:flex; height:100vh; }
+  .sidebar{ width:60px; background:#111; padding:10px; box-sizing:border-box; overflow-y:auto; }
+  .color-btn{ width:100%; height:24px; margin-bottom:6px; border:none; cursor:pointer; outline:none; border-radius:4px; box-shadow:0 0 5px rgba(255,255,255,0.3); }
+  .main{ flex:1; padding:10px; box-sizing:border-box; display:flex; flex-direction:column; }
+  .toolbar{ display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px; align-items:center; }
+  .toolbar select, .toolbar input, .toolbar button{ padding:6px; border-radius:4px; border:1px solid #333; background:#111; color:#fff; outline:none; }
+  
+  body.light-mode { background: #e0e0e0; color: #000; }
+  .light-mode #captureArea { background: #ffffff !important; border-color: #ccc; }
+  .light-mode #editorHeader { border-bottom-color: #ccc; color: #000; }
+  .light-mode .toolbar select, .light-mode .toolbar input, .light-mode .toolbar button { background: #eee; color: #000; border-color: #bbb; }
+  .light-mode .sidebar { background: #d0d0d0; }
+
+  #captureArea { flex:1; background:#050505; border:1px solid #333; border-radius:6px; display:flex; flex-direction:column; overflow-y:auto; position: relative; }
+  #editorHeader { padding: 10px; font-size: 18px; min-height: 30px; margin-bottom: 5px; border-bottom: 1px dashed #333; }
+  
+  .editor{ flex:1; padding:10px; overflow-y:auto; font-size:18px; white-space: pre-wrap; word-wrap: break-word; word-break: break-word; min-height: 100%; outline: none; line-height: 1.0 !important; }
+  .editor div { margin: 0 !important; padding: 0 !important; min-height: 1.0em !important; line-height: 1.0 !important; }
+
+  .neon-black{ color:#000000 !important; text-shadow:none !important; } 
+  .neon-orange{ color:#ff6600 !important; text-shadow:0 0 5px #ff6600,0 0 10px #ff6600,0 0 15px #ff6600,0 0 20px #ff6600 !important; }
+  .neon-yellow{ color:#ffff00 !important; text-shadow:0 0 5px #ffff00,0 0 10px #ffff00,0 0 15px #ffff00,0 0 20px #ffff00 !important; }
+  .neon-darkred{ color:#7a001f !important; text-shadow:0 0 5px #7a001f,0 0 10px #7a001f,0 0 15px #7a001f,0 0 20px #7a001f !important; }
+  .neon-cyan{ color:#00f6ff !important; text-shadow:0 0 5px #00f6ff,0 0 10px #00f6ff,0 0 15px #00f6ff,0 0 20px #00f6ff !important; }
+  .neon-blue{ color:#00aaff !important; text-shadow:0 0 5px #00aaff,0 0 10px #00aaff,0 0 15px #00aaff,0 0 20px #00aaff !important; }
+  .neon-deepblue{ color:#0080ff !important; text-shadow:0 0 5px #0080ff,0 0 10px #0080ff,0 0 15px #0080ff,0 0 20px #0080ff !important; }
+  .neon-magenta{ color:#ff00ff !important; text-shadow:0 0 5px #ff00ff,0 0 10px #ff00ff,0 0 15px #ff00ff,0 0 20px #ff00ff !important; }
+  .neon-pink{ color:#ff33ff !important; text-shadow:0 0 5px #ff33ff,0 0 10px #ff33ff,0 0 15px #ff33ff,0 0 20px #ff33ff !important; }
+  .neon-green{ color:#00ff00 !important; text-shadow:0 0 5px #00ff00,0 0 10px #00ff00,0 0 15px #00ff00,0 0 20px #00ff00 !important; }
+  .neon-lightgreen{ color:#00ff66 !important; text-shadow:0 0 5px #00ff66,0 0 10px #00ff66,0 0 15px #00ff66,0 0 20px #00ff66 !important; }
+  .neon-lime{ color:#33ff33 !important; text-shadow:0 0 5px #33ff33,0 0 10px #33ff33,0 0 15px #33ff33,0 0 20px #33ff33 !important; }
+  .neon-mint{ color:#00ff99 !important; text-shadow:0 0 5px #00ff99,0 0 10px #00ff99,0 0 15px #00ff99,0 0 20px #00ff99 !important; }
+  .neon-purple{ color:#8000ff !important; text-shadow:0 0 5px #8000ff,0 0 10px #8000ff,0 0 15px #8000ff,0 0 20px #8000ff !important; }
+  .neon-red{ color:#ff0000 !important; text-shadow:0 0 5px #ff0000,0 0 10px #ff0000,0 0 15px #ff0000,0 0 20px #ff0000 !important; }
+  .neon-white{ color:#ffffff !important; text-shadow:0 0 5px #ffffff,0 0 10px #ffffff,0 0 15px #ffffff,0 0 20px #ffffff !important; }
+
+  .glow-off [class^='neon-'] { text-shadow: none !important; } 
+  #glowBtn.on { background: #00ff00 !important; color: #000 !important; font-weight: bold; } 
+  #glowBtn.off { background: #ff0000 !important; color: #fff !important; font-weight: bold; } 
+
+  .editor a { cursor: pointer !important; text-decoration: underline !important; display: inline-block; }
+  .saved-panel{ width:300px; background:#222; padding:20px; box-sizing:border-box; display: flex; flex-direction: column; overflow-y:auto; } 
+  .saved-panel h3{ color:#00f6ff; margin-top:0; } 
+  #savedList { flex: 1; overflow-y: auto; } 
+  .saved-item{ border-bottom:1px solid #333; padding:6px; cursor:pointer; } 
+  
+  .label-red { color: #7a001f; font-weight: bold; } 
+  .label-yellow { color: #ffff00; }
+  .label-green { color: #00ff00; }
+  .label-cyan { color: #00f6ff; }
+
+  #storageInfo { font-size: 20px; margin-top: 10px; } 
+  .storage-bar-bg { width: 100%; height: 12px; background: #333; border-radius: 6px; margin: 10px 0; overflow: hidden; border: 1px solid #444; } 
+  #storageBarFill { height: 100%; width: 0%; transition: width 0.3s ease-in-out; } 
+  .hard-reset-btn { background: #ff0000 !important; color: white !important; font-weight: bold; width: 100%; cursor: pointer; padding: 10px; border: none; border-radius: 4px; margin-top: 5px; } 
+
+  #pdf-helper-wrap { position: absolute; left: -9999px; top: 0; width: 210mm; }
+  .pdf-capture-node { padding: 40px; box-sizing: border-box; }
+</style>
 </head>
 <body>
+
 <div class="container">
+  <div class="sidebar">
+    <div style="text-align:center;font-size:12px;margin-bottom:8px;">Neon<br>Színek</div> 
+    <button class="color-btn" style="background:#000000; border:1px solid #555;" onmousedown="applyColorAndSet(event, 'neon-black')"></button>
+    <button class="color-btn" style="background:#ff6600" onmousedown="applyColorAndSet(event, 'neon-orange')"></button>
+    <button class="color-btn" style="background:#ffff00" onmousedown="applyColorAndSet(event, 'neon-yellow')"></button>
+    <button class="color-btn" style="background:#7a001f" onmousedown="applyColorAndSet(event, 'neon-darkred')"></button>
+    <button class="color-btn" style="background:#00f6ff" onmousedown="applyColorAndSet(event, 'neon-cyan')"></button>
+    <button class="color-btn" style="background:#00aaff" onmousedown="applyColorAndSet(event, 'neon-blue')"></button>
+    <button class="color-btn" style="background:#0080ff" onmousedown="applyColorAndSet(event, 'neon-deepblue')"></button>
+    <button class="color-btn" style="background:#ff00ff" onmousedown="applyColorAndSet(event, 'neon-magenta')"></button>
+    <button class="color-btn" style="background:#ff33ff" onmousedown="applyColorAndSet(event, 'neon-pink')"></button>
+    <button class="color-btn" style="background:#00ff00" onmousedown="applyColorAndSet(event, 'neon-green')"></button>
+    <button class="color-btn" style="background:#00ff66" onmousedown="applyColorAndSet(event, 'neon-lightgreen')"></button>
+    <button class="color-btn" style="background:#33ff33" onmousedown="applyColorAndSet(event, 'neon-lime')"></button>
+    <button class="color-btn" style="background:#00ff99" onmousedown="applyColorAndSet(event, 'neon-mint')"></button>
+    <button class="color-btn" style="background:#8000ff" onmousedown="applyColorAndSet(event, 'neon-purple')"></button>
+    <button class="color-btn" style="background:#ff0000" onmousedown="applyColorAndSet(event, 'neon-red')"></button>
+    <button class="color-btn" style="background:#ffffff" onmousedown="applyColorAndSet(event, 'neon-white')"></button>
+  </div>
+
   <div class="main">
-    <div class="storage-container">
-      <div id="storageText">Memória ellenőrzése...</div> <div class="storage-bar-bg"><div id="storageBarFill"></div></div> <button class="btn-reset" onclick="hardReset()">MINDEN ADAT TÖRLÉSE ÉS ZÖLDRE VÁLTÁS</button> </div>
+    <div style="background: #1a1a1a; padding: 10px; border-radius: 8px; border: 1px solid #444; margin-bottom: 10px;">
+        <button class="hard-reset-btn" onclick="hardReset()">VÉSZHELYZETI RESET (MEMÓRIA ÜRÍTÉS)</button>
+    </div>
+
     <div class="toolbar">
-      <button onclick="importNotes()">Import (JSON)</button> <button onclick="newNote()">Tiszta lap</button> </div>
-    <div id="editor" class="editor" contenteditable="true"></div> </div>
+      <label>Betűtípus:</label> 
+      <select id="fontSelect" onchange="setFont()"> 
+        <option value="Arial" style="color:#ffffff;">Arial (Alap)</option>
+        <option value="Montserrat" style="color:#00ffcc; font-family:'Montserrat';">Montserrat</option>
+        <option value="Nunito" style="color:#ffccff; font-family:'Nunito';">Nunito</option>
+        <option value="Oswald" style="color:#ff6600; font-family:'Oswald';">Oswald</option>
+        <option value="Playfair Display" style="color:#ffff99; font-family:'Playfair Display';">Playfair Display</option>
+        <option value="Spectral" style="color:#99ff99; font-family:'Spectral';">Spectral</option>
+        <option value="Ultra" style="color:#ff3333; font-family:'Ultra';">Ultra (Vastag)</option>
+        <option value="Varela Round" style="color:#66ccff; font-family:'Varela Round';">Varela Round</option>
+        <option value="Alegreya" style="color:#ff9900; font-family:'Alegreya';">Alegreya</option>
+        <option value="Roboto Serif" style="color:#cccccc; font-family:'Roboto Serif';">Roboto Serif</option>
+        <option value="Roboto Mono" style="color:#00ff00; font-family:'Roboto Mono';">Roboto Mono</option>
+        <option value="Orbitron" style="color:#00f6ff; font-family:'Orbitron';">Orbitron (Sci-fi Neon)</option>
+        <option value="Special Elite" style="color:#ffd700; font-family:'Special Elite';">Gépelés (Írógép)</option>
+        <option value="VT323" style="color:#00ff00; font-family:'VT323';">Terminal (Mátrix)</option>
+        <option value="Press Start 2P" style="color:#ffff00; font-family:'Press Start 2P';">8-Bit (Retro)</option>
+        <option value="Monoton" style="color:#ff00ff; font-family:'Monoton';">MONOTON (Neon)</option>
+        <option value="Pinyon Script" style="color:#00ff99; font-family:'Pinyon Script';">Pinyon (Kézírás)</option>
+        <option value="Creepster" style="color:#ff0000; font-family:'Creepster';">Horror (Creep)</option>
+        <option value="Nabla" style="color:#ff6600; font-family:'Nabla';">Nabla (3D Színes)</option>
+        <option value="Lobster" style="color:#00f6ff; font-family:'Lobster';">Lobster</option>
+        <option value="Righteous" style="color:#ffff00; font-family:'Righteous';">Righteous</option>
+        <option value="Bungee Shade" style="color:#ff33ff; font-family:'Bungee Shade';">Bungee (Árnyas)</option>
+        <option value="Faster One" style="color:#00ff00; font-family:'Faster One';">Faster (Száguldó)</option>
+        <option value="Ewert" style="color:#8000ff; font-family:'Ewert';">Ewert (Különleges)</option>
+        <option value="Vast Shadow" style="color:#ffffff; font-family:'Vast Shadow';">Vast Shadow</option>
+        <option value="Permanent Marker" style="color:#ff6600; font-family:'Permanent Marker';">Filctoll (Vastag)</option>
+        <option value="Sacramento" style="color:#ff99cc; font-family:'Sacramento';">Sacramento (Folyó)</option>
+        <option value="Silkscreen" style="color:#33ff33; font-family:'Silkscreen';">Pixel (Tiszta)</option>
+        <option value="Codystar" style="color:#00ffff; font-family:'Codystar';">Codystar (Pontok)</option>
+        <option value="Megrim" style="color:#ffcc00; font-family:'Megrim';">Megrim (Elvont)</option>
+        <option value="UnifrakturMaguntia" style="color:#7a001f; font-family:'UnifrakturMaguntia';">Gótikus (Old)</option>
+        <option value="Wallpoet" style="color:#0080ff; font-family:'Wallpoet';">Graffiti</option>
+        <option value="Syncopate" style="color:#00ff99; font-family:'Syncopate';">Techno</option>
+        <option value="Nosifer" style="color:#ff0000; font-family:'Nosifer';">Vérző (Folyékony)</option>
+        <option value="Rubik Glitch" style="color:#ffff00; font-family:'Rubik Glitch';">Glitch (Hiba)</option>
+        <option value="Bangers" style="color:#00aaff; font-family:'Bangers';">Pop Art</option>
+        <option value="Pacifico" style="color:#ff33ff; font-family:'Pacifico';">Pacifico</option>
+        <option value="Great Vibes" style="color:#ff99cc; font-family:'Great Vibes';">Great Vibes</option>
+        <option value="Bruno Ace SC" style="color:#00f6ff; font-family:'Bruno Ace SC';">Bruno Ace</option>
+        <option value="Fascinate Inline" style="color:#ff00ff; font-family:'Fascinate Inline';">Fascinate</option>
+        <option value="Fredericka the Great" style="color:#ffffff; font-family:'Fredericka the Great';">Vázlatos</option>
+        <option value="Courier New" style="color:#ff00ff;">Courier (Írógép)</option>
+      </select>
+
+      <label>Méret:</label> 
+      <input type="range" id="sizeRange" min="8" max="100" value="18" oninput="setSize(this.value)"> <span id="sizeValue">18</span>px 
+      <button onclick="resetColor()">Reset szín</button> 
+      <button id="glowBtn" class="on" onclick="toggleGlow()">Glow ON</button> 
+      <button onclick="toggleTheme()">🌓 Sötétítő</button>
+      <input type="text" id="linkInput" placeholder="Link..." /> 
+      <button onclick="insertLink()">Beszúrás</button> 
+      <button onclick="newNote()">+ Új lap</button> </div>
+
+    <div class="toolbar">
+        <button onclick="loadNote()">Betöltés</button> <button onclick="saveNote()">Mentés (.json)</button> <button onclick="deleteNote()">Törlés</button> <button onclick="exportNotes()">EXPORT (ÖSSZES)</button> <button onclick="importNotes()">Import (.json)</button> <button onclick="downloadPNG(false)">PNG fekete</button> <button onclick="downloadPNG(true)">PNG átlátszó</button> 
+        <button onclick="downloadPDF(false)">PDF FF</button> <button onclick="downloadPDF(true)" style="background:#7a001f">PDF Színes</button>
+    </div>
+
+    <div id="savePath" style="margin-top:6px; font-family: 'Courier New', monospace; line-height: 1.6;">
+        <div><span class="label-red">Mentés helye:</span> <span class="label-yellow">IndexedDB (Belső Adatbázis 500MB)</span></div>
+        <div id="lastFileDisplay"><span class="label-red">Utolsó fájl:</span> <span class="label-green">Nincs mentés</span></div>
+        <div id="timeDisplay"><span class="label-red">Időpont:</span> <span class="label-cyan">--:--:--</span></div>
+    </div> 
+    
+    <div id="storageInfo"></div> 
+    <div class="storage-bar-bg"><div id="storageBarFill"></div></div> 
+    
+    <div id="captureArea">
+        <div id="editorHeader"></div> 
+        <div id="editor" class="editor" contenteditable="true"></div> 
+    </div>
+  </div>
+
+  <div class="saved-panel">
+    <h3>Mentett jegyzetek</h3> <div id="savedList"></div> <button class="clear-btn" onclick="clearList()" style="background:#7a001f; color:white; border:1px solid red; padding:10px; cursor:pointer;">Lista ürítése</button> </div>
 </div>
+
+<div id="pdf-helper-wrap"></div>
+
 <script>
-  const storageBarFill = document.getElementById("storageBarFill"); const storageText = document.getElementById("storageText"); const editor = document.getElementById("editor"); 
-  const MAX_MB = 500;
-  const MAX_BYTES = MAX_MB * 1024 * 1024;
+  const editor = document.getElementById("editor"); const editorHeader = document.getElementById("editorHeader"); const captureArea = document.getElementById("captureArea"); const savedList = document.getElementById("savedList"); const storageInfo = document.getElementById("storageInfo"); const storageBarFill = document.getElementById("storageBarFill"); const linkInput = document.getElementById("linkInput"); const glowBtn = document.getElementById("glowBtn"); const lastFileDisplay = document.getElementById("lastFileDisplay"); const timeDisplay = document.getElementById("timeDisplay"); let activeColorClass = "neon-white"; let glowOn = true; let notes = []; 
+
+  let db;
+  const dbRequest = indexedDB.open("NeonNotesDB", 1);
+  dbRequest.onupgradeneeded = e => { db = e.target.result; db.createObjectStore("notes", { keyPath: "id", autoIncrement: true }); };
+  dbRequest.onsuccess = e => { db = e.target.result; loadFromDB(); };
+
+  function loadFromDB() {
+    const transaction = db.transaction("notes", "readonly");
+    const store = transaction.objectStore("notes");
+    const request = store.getAll();
+    request.onsuccess = () => { notes = request.result; refreshListUI(); updateStorageStatus(); };
+  }
+
   function updateStorageStatus() {
-    let used = 0; try {
-        for (let x in localStorage) { if (localStorage.hasOwnProperty(x)) used += (localStorage[x].length * 2); } 
-        const usedPerc = ((used / MAX_BYTES) * 100).toFixed(2); 
-        const usedMB = (used / (1024*1024)).toFixed(2);
-        const freeMB = ((MAX_BYTES - used) / (1024 * 1024)).toFixed(2); 
-        let color = "#00ff00"; if(usedPerc > 70) color = "#ffff00"; if(usedPerc > 95) color = "#ff0000"; 
-        storageBarFill.style.width = Math.min(usedPerc,100) + "%"; 
-        storageBarFill.style.background = color; 
-        storageText.innerHTML = `Memória állapot: <span style="color:${color}">${usedPerc}% - Használt: ${usedMB} MB / ${MAX_MB} MB (Szabad: ${freeMB} MB)</span>`; 
-    } catch(e) {
-        storageText.innerHTML = "<span style='color:red'>Hiba a memória beolvasásakor!</span>"; }
+    const totalMax = 500 * 1024 * 1024;
+    let size = new Blob([JSON.stringify(notes)]).size;
+    const freePercentage = Math.max(0, 100 - ((size / totalMax) * 100)).toFixed(2);
+    const usedMB = (size / (1024 * 1024)).toFixed(2);
+    storageBarFill.style.width = (100 - freePercentage) + "%";
+    storageBarFill.style.background = freePercentage < 10 ? "#ff0000" : "#00ff00";
+    storageInfo.innerHTML = `<span class="label-red">Használt:</span> <span class="label-cyan">${usedMB} MB</span> / 500 MB`;
   }
-  function hardReset() {
-    if(confirm("Ez véglegesen törli a böngészőben ragadt összes adatot, hogy újra zöld legyen a csík. A gépeden lévő fájlok megmaradnak. Mehet?")) {
-        localStorage.clear(); updateStorageStatus(); editor.innerHTML = ""; alert("A memória sikeresen kiürítve, újra zöld a rendszer! 500MB szabad!"); }
+
+  editor.addEventListener("mousedown", function(e) { const link = e.target.closest("a"); if (link) { window.open(link.href, "_blank"); } });
+
+  function setRecordedTime(ts) { timeDisplay.innerHTML = `<span class="label-red">Időpont:</span> <span class="label-cyan">${ts || "--:--:--"}</span>`; }
+  function hardReset() { if(confirm("Törli a memóriát?")) { const t = db.transaction("notes", "readwrite"); t.objectStore("notes").clear(); t.oncomplete = () => { notes = []; refreshListUI(); updateStorageStatus(); setRecordedTime(""); alert("Resetelve!"); }; } } 
+  function refreshListUI() { savedList.innerHTML = ""; notes.forEach(n => addSavedItemToUI(n.name, n.timestamp, n.color)); } 
+  
+  function toggleGlow(){ glowOn = !glowOn; document.body.classList.toggle("glow-off", !glowOn); glowBtn.innerText = glowOn ? "Glow ON" : "Glow OFF"; glowBtn.className = glowOn ? "on" : "off"; } 
+  function toggleTheme() { document.body.classList.toggle("light-mode"); }
+
+  function applyColorAndSet(e, className) { 
+    e.preventDefault(); activeColorClass = className; 
+    const selection = window.getSelection(); 
+    if (selection.rangeCount > 0) { 
+        let container = selection.anchorNode; if (container.nodeType === 3) container = container.parentElement;
+        const closestLink = container.closest("a");
+        if (closestLink) { closestLink.className = className; } else if (selection.toString().length > 0) {
+            const range = selection.getRangeAt(0); const span = document.createElement("span"); span.className = className; span.textContent = selection.toString(); range.deleteContents(); range.insertNode(span);
+        }
+    } editor.focus(); 
+  } 
+
+  function resetColor(){ activeColorClass = "neon-white"; } 
+  function setFont(){ editor.style.fontFamily = document.getElementById("fontSelect").value; } 
+  function setSize(size){ editor.style.fontSize = size + "px"; document.getElementById("sizeValue").innerText = size; } 
+  
+  function insertHTMLAtCursor(html){ const sel=window.getSelection(); if(!sel.rangeCount) return; const range=sel.getRangeAt(0); range.deleteContents(); const el=document.createElement("div"); el.innerHTML=html; const frag=document.createDocumentFragment(); let node,lastNode; while((node=el.firstChild)) lastNode=frag.appendChild(node); range.insertNode(frag); if(lastNode){ range.setStartAfter(lastNode); range.collapse(true); sel.removeAllRanges(); sel.addRange(range); } } 
+
+  editor.addEventListener("keydown", e => {
+    if(e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey){
+      const selection = window.getSelection();
+      let container = selection.anchorNode.parentElement;
+      if (container && (container.tagName === "A" || container.closest("a"))) return;
+      e.preventDefault(); 
+      if(container && container.classList.contains(activeColorClass) && container.tagName === "SPAN") {
+        const textNode = document.createTextNode(e.key === " " ? "\u00A0" : e.key); const range = selection.getRangeAt(0); range.insertNode(textNode); range.setStartAfter(textNode); range.collapse(true); 
+      } else {
+        let char = e.key === " " ? "&nbsp;" : e.key; insertHTMLAtCursor(`<span class="${activeColorClass}">${char}</span>`); 
+      }
+    } else if(e.key === "Enter"){ e.preventDefault(); insertHTMLAtCursor("<div><br></div>"); }
+  }); 
+
+  editor.addEventListener("paste", e => { 
+    e.preventDefault(); 
+    const text = (e.clipboardData || window.clipboardData).getData("text/plain"); 
+    const fragment = document.createDocumentFragment();
+    const urlPattern = /(https?:\/\/[^\s]+)/gi;
+    const lines = text.split(/\r?\n/);
+    lines.forEach((line) => {
+      const lineDiv = document.createElement("div");
+      let currentLineHTML = ""; let lastIdx = 0; let match;
+      while ((match = urlPattern.exec(line)) !== null) {
+        const before = line.substring(lastIdx, match.index);
+        if (before) currentLineHTML += `<span class="${activeColorClass}">${before.replace(/ /g, "&nbsp;")}</span>`;
+        currentLineHTML += `<a href="${match[0]}" target="_blank" class="${activeColorClass}">${match[0]}</a>`;
+        lastIdx = urlPattern.lastIndex;
+      }
+      const after = line.substring(lastIdx);
+      if (after) currentLineHTML += `<span class="${activeColorClass}">${after.replace(/ /g, "&nbsp;")}</span>`;
+      lineDiv.innerHTML = currentLineHTML || "<br>";
+      fragment.appendChild(lineDiv);
+    });
+    const selection = window.getSelection();
+    if (selection.rangeCount) { const range = selection.getRangeAt(0); range.deleteContents(); range.insertNode(fragment); range.collapse(false); }
+  }); 
+
+  function insertLink(){ 
+    let url = linkInput.value.trim(); 
+    if(url) { 
+        if(!url.startsWith("http")) url = "https://" + url; 
+        const linkHTML = `<a href="${url}" target="_blank" class="${activeColorClass}">${url}</a><span class="${activeColorClass}">&nbsp;</span>`; 
+        insertHTMLAtCursor(linkHTML); linkInput.value = ""; 
+    } 
+  } 
+
+  function getFormattedDate() { const d = new Date(); return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}_${String(d.getHours()).padStart(2,'0')}-${String(d.getMinutes()).padStart(2,'0')}`; }
+
+  function askHeaderInfo() {
+    const intro = prompt("Bevezető:", editorHeader.innerText.split(" - ")[0] || ""); if(intro===null) return false;
+    const name = prompt("Jegyzet neve:", editorHeader.innerText.split(" - ")[1] || ""); if(!name) return false;
+    const d = new Date();
+    const timestamp = `${d.getFullYear()}. ${String(d.getMonth()+1).padStart(2,'0')}. ${String(d.getDate()).padStart(2,'0')}. ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}:${String(d.getSeconds()).padStart(2,'0')}`;
+    editorHeader.innerHTML = `<span class="${activeColorClass}">${intro} - ${name} - ${timestamp}</span>`;
+    setRecordedTime(timestamp); return true;
   }
-  function importNotes() {
-    const input = document.createElement("input"); input.type="file"; input.accept=".json"; input.onchange = e => {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = ev => {
-        try {
-          const imported = JSON.parse(ev.target.result); editor.innerHTML = imported.content || "Nincs tartalom a fájlban."; alert("Sikeresen betöltve a fájlból!"); updateStorageStatus(); } catch(err) {
-          alert("Hiba: Ez a fájl nem jegyzet fájl vagy sérült."); }
-      };
-      reader.readAsText(file); };
-    input.click();
+
+  function saveNote(){
+    if(!askHeaderInfo()) return;
+    const headerText = editorHeader.innerText;
+    const parts = headerText.split(" - ");
+    const intro = parts[0], namePart = parts[1], timestamp = parts[2];
+    const data = { name: namePart, intro, timestamp, content: editor.innerHTML, color: activeColorClass };
+    const t = db.transaction("notes", "readwrite");
+    t.objectStore("notes").put(data);
+    t.oncomplete = () => { 
+      loadFromDB();
+      const blob = new Blob([JSON.stringify(data)], {type:'application/json'});
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `Jegyzet_${namePart}_${getFormattedDate()}.json`; a.click();
+      lastFileDisplay.innerHTML = `<span class="label-red">Utolsó fájl:</span> <span class="label-green">Mentve az adatbázisba</span>`;
+    };
+  } 
+
+  async function downloadPDF(isColor) {
+    const { jsPDF } = window.jspdf; 
+    const helperWrap = document.getElementById("pdf-helper-wrap"); 
+    const captureNode = document.createElement("div"); 
+    captureNode.className = "pdf-capture-node"; 
+    const isLight = document.body.classList.contains("light-mode"); 
+    const bg = (isColor && !isLight) ? "#050505" : "#ffffff"; 
+    captureNode.style.background = bg;
+    captureNode.appendChild(editorHeader.cloneNode(true)); 
+    captureNode.appendChild(editor.cloneNode(true)); 
+    if(!isColor) { captureNode.querySelectorAll("span, a, div").forEach(el => { el.style.setProperty("color", "black", "important"); el.style.setProperty("text-shadow", "none", "important"); }); captureNode.style.color = "black"; }
+    helperWrap.innerHTML = ""; helperWrap.appendChild(captureNode);
+    html2canvas(captureNode, { backgroundColor: bg, scale: 2 }).then(canvas => {
+      const imgWidth = 210; const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const pdf = new jsPDF('p', 'mm', [imgWidth, imgHeight]); pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, imgWidth, imgHeight);
+      pdf.save(`jegyzet_${getFormattedDate()}.pdf`); helperWrap.innerHTML = ""; 
+    });
   }
-  function newNote() { editor.innerHTML = ""; } 
-  window.onload = updateStorageStatus; 
-  setInterval(updateStorageStatus, 2000);
+
+  function downloadPNG(transparent){ 
+    const originalBg = captureArea.style.background; const originalBorder = captureArea.style.borderColor;
+    if(transparent) { captureArea.style.background = "transparent"; captureArea.style.borderColor = "transparent"; }
+    html2canvas(captureArea, { backgroundColor: null, scale: 2 }).then(canvas => { 
+        captureArea.style.background = originalBg; captureArea.style.borderColor = originalBorder;
+        const a = document.createElement("a"); a.download = `jegyzet_${Date.now()}.png`; a.href = canvas.toDataURL("image/png"); a.click(); 
+    }); 
+  } 
+
+  function exportNotes(){ 
+    if(notes.length === 0) { alert("Nincs mit exportálni!"); return; }
+    const exportName = prompt("Export fájl neve:", "Osszes_Jegyzet_Export"); if(exportName === null) return;
+    const blob = new Blob([JSON.stringify(notes)], {type:'application/json'}); const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${exportName}_${getFormattedDate()}.json`; a.click(); 
+  }
+
+  function importNotes(){ const input = document.createElement("input"); input.type="file"; input.accept=".json"; input.onchange = e => { const file = e.target.files[0]; if(!file) return; const reader = new FileReader(); reader.onload = ev => { try { const imported = JSON.parse(ev.target.result); const t = db.transaction("notes", "readwrite"); const store = t.objectStore("notes"); if(Array.isArray(imported)) imported.forEach(n => store.put(n)); else store.put(imported); t.oncomplete = () => { loadFromDB(); alert("Importálva!"); }; } catch(err) { alert("Hiba!"); } }; reader.readAsText(file); }; input.click(); } 
+  function addSavedItemToUI(name, date, color){ const div = document.createElement("div"); div.className="saved-item"; div.innerHTML=`<span class="${color}">${name} - ${date}</span>`; div.onclick = ()=>{ const found = notes.find(n=>n.name===name && n.timestamp===date); if(found) { editor.innerHTML = found.content; editorHeader.innerHTML = `<span class="${found.color}">${found.intro} - ${found.name} - ${found.timestamp}</span>`; setRecordedTime(found.timestamp); } }; savedList.appendChild(div); } 
+  function loadNote(){ const name = prompt("Keresett név:"); const found = notes.find(n=>n.name === name); if(found) { editor.innerHTML = found.content; editorHeader.innerHTML = `<span class="${found.color}">${found.intro} - ${found.name} - ${found.timestamp}</span>`; setRecordedTime(found.timestamp); } } 
+  function newNote(){ editor.innerHTML = ""; editorHeader.innerHTML = ""; setRecordedTime(""); } 
+  function deleteNote(){ if(confirm("Törli?")) newNote(); } 
+  function clearList() { if(confirm("Üríti a listát?")) { const t = db.transaction("notes", "readwrite"); t.objectStore("notes").clear(); t.oncomplete = () => { notes=[]; savedList.innerHTML=""; updateStorageStatus(); setRecordedTime(""); }; } } 
 </script>
 </body>
 </html>
