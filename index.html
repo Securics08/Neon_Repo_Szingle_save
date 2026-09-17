@@ -182,7 +182,17 @@ body.no-neon-active .hu-header, body.no-neon-active .hu-text, body.no-neon-activ
     </div>
 
     <div class="group">
-        <select id="fontFamily" onchange="changeFont()"></select> 
+        
+<div id="custom-font-wrapper" style="position:relative; display:inline-block; font-family:Arial,sans-serif; min-width:160px;">
+  <div id="custom-font-header" style="background:#111; color:#fff; border:2px solid #555; padding:6px 30px 6px 12px; border-radius:6px; font-weight:bold; cursor:pointer; min-height:20px; position:relative;">
+    <span id="custom-font-text" style="font-family:Arial;">16. Arial</span>
+    <span style="position:absolute; right:8px; top:50%; transform:translateY(-50%);">▼</span>
+  </div>
+  <div id="custom-font-list" style="display:none; position:absolute; top:100%; left:0; right:0; background:#000; border:2px solid #333; border-radius:8px; max-height:350px; overflow-y:auto; z-index:9999; padding:6px; margin-top:4px; box-shadow:0 0 20px rgba(255,255,255,0.3); width:280px;">
+  </div>
+</div>
+<select id="fontFamily" onchange="changeFont()" style="display:none;"></select>
+ 
         <input type="number" id="fontSize" value="25" min="8" max="150" style="width:60px" oninput="changeSize()"> 
         <button onclick="toggleBold()" class="color-green"><b>B</b></button> 
         <button onclick="toggleItalic()" class="color-cyan"><i>/</i></button> 
@@ -441,7 +451,12 @@ function updateStats() {
     document.getElementById("wCount").innerText = val.trim() ? val.trim().split(/\s+/).length : 0;
     document.getElementById("cCount").innerText = val.length;
 }
-function changeFont() { document.getElementById("editor").style.fontFamily = document.getElementById("highlight").style.fontFamily = document.getElementById("fontFamily").value; }
+function changeFont() { 
+  const v = document.getElementById("fontFamily").value;
+  document.getElementById("editor").style.fontFamily = document.getElementById("highlight").style.fontFamily = v;
+  try{ localStorage.setItem('securics_font', v); localStorage.setItem('lastFont', v); }catch(e){}
+  try{ if(typeof saveData==='function') saveData(); }catch(e){}
+}
 function changeSize() { document.getElementById("editor").style.fontSize = document.getElementById("highlight").style.fontSize = document.getElementById("fontSize").value + "px"; }
 function toggleBold() { const style = document.getElementById("editor").style.fontWeight === 'bold' ? 'normal' : 'bold'; document.getElementById("editor").style.fontWeight = document.getElementById("highlight").style.fontWeight = style; }
 function toggleItalic() { const style = document.getElementById("editor").style.fontStyle === 'italic' ? 'normal' : 'italic'; document.getElementById("editor").style.fontStyle = document.getElementById("highlight").style.fontStyle = style; }
@@ -1436,92 +1451,122 @@ function closeGaleriaMenu(){ document.getElementById('galeria-overlay').style.di
 
 
 
+
+
 <script>
 document.addEventListener('DOMContentLoaded', function(){
-  const wrapper = document.getElementById('custom-neon-wrapper');
+  // --- NEON SZÍN MENÜ ---
+  try{
   const header = document.getElementById('custom-neon-header');
   const text = document.getElementById('custom-neon-text');
   const list = document.getElementById('custom-neon-list');
   const nativeSelect = document.getElementById('neon-color-select');
   const opts = document.querySelectorAll('.neon-opt');
-  
-  const STORAGE_KEY = 'securics_final_color';
-  const STORAGE_NAME_KEY = 'securics_final_color_name';
-  
-  function updateHeader(color, name, save=true){
-    header.style.borderColor = color;
-    header.style.color = color;
-    header.style.boxShadow = '0 0 15px ' + color;
-    text.textContent = name;
-    if(nativeSelect){
-      nativeSelect.value = color;
-      nativeSelect.dispatchEvent(new Event('change'));
+  if(header && text && list && nativeSelect){
+    const STORAGE_KEY = 'securics_final_color';
+    const STORAGE_NAME_KEY = 'securics_final_color_name';
+    function updateHeader(color, name, save){
+      if(!color) color='#00FFFF'; if(!name) name='Cyán';
+      header.style.borderColor=color; header.style.color=color; header.style.boxShadow='0 0 15px '+color; text.textContent=name; text.style.color=color;
+      try{ nativeSelect.value=color.toUpperCase(); nativeSelect.dispatchEvent(new Event('change')); }catch(e){ try{nativeSelect.value=color;}catch(e2){} }
+      if(save){ try{ localStorage.setItem(STORAGE_KEY,color); localStorage.setItem(STORAGE_NAME_KEY,name); localStorage.setItem('securics_neon_color',color);}catch(e){} }
+      if(typeof applyHighlight==='function') setTimeout(applyHighlight,80);
     }
-    if(save){
-      try{
-        localStorage.setItem(STORAGE_KEY, color);
-        localStorage.setItem(STORAGE_NAME_KEY, name);
-        localStorage.setItem('securics_neon_color', color);
-      }catch(e){}
-    }
-    // Also update textColor box
-    try{
-      if(window.setChosenTextColor) setChosenTextColor(color);
-      else {
-        const box = document.getElementById('textColorHexBox');
-        if(box) box.textContent = color.replace('#','').toUpperCase();
-      }
-    }catch(e){}
+    header.addEventListener('click', function(e){ e.stopPropagation(); const h=list.style.display; list.style.display=(h==='none'||h===''||getComputedStyle(list).display==='none')?'block':'none'; });
+    opts.forEach(function(o){ o.addEventListener('click', function(e){ e.stopPropagation(); updateHeader(this.getAttribute('data-value'), this.getAttribute('data-name'), true); list.style.display='none'; }); });
+    document.addEventListener('click', function(){ list.style.display='none'; document.getElementById('custom-font-list').style.display='none'; });
+    let sc=null,sn=null; try{ sc=localStorage.getItem(STORAGE_KEY)||localStorage.getItem('securics_neon_color'); sn=localStorage.getItem(STORAGE_NAME_KEY);}catch(e){}
+    if(sc){ if(!sn){ const f=document.querySelector('.neon-opt[data-value="'+sc.toUpperCase()+'"], .neon-opt[data-value="'+sc+'"]'); sn=f?f.getAttribute('data-name'):sc; } updateHeader(sc,sn,false); } else updateHeader('#00FFFF','Cyán',false);
   }
-  
-  header.addEventListener('click', function(e){
-    e.stopPropagation();
-    list.style.display = list.style.display === 'none' || list.style.display === '' ? 'block' : 'none';
-  });
-  
-  opts.forEach(opt => {
-    opt.addEventListener('click', function(){
-      const col = this.dataset.value;
-      const name = this.dataset.name;
-      updateHeader(col, name, true);
-      list.style.display = 'none';
-      if(typeof applyHighlight === 'function') setTimeout(applyHighlight, 100);
-    });
-    opt.addEventListener('mouseenter', function(){
-      this.style.transform = 'scale(1.02)';
-      this.style.filter = 'brightness(1.2)';
-    });
-    opt.addEventListener('mouseleave', function(){
-      this.style.transform = 'scale(1)';
-      this.style.filter = 'brightness(1)';
-    });
-  });
-  
-  document.addEventListener('click', function(){
-    list.style.display = 'none';
-  });
-  
-  // Load saved color or default to Cyán
-  let savedColor = null;
-  let savedName = null;
+  }catch(err){ console.error('neon',err); }
+
+  // --- BETŰ SZÍNES MENÜ ---
   try{
-    savedColor = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('securics_neon_color');
-    savedName = localStorage.getItem(STORAGE_NAME_KEY);
-  }catch(e){}
+  const rawFonts = ["Abel","Abril Fatface","Acme","Alegreya","Alex Brush","Alfa Slab One","Alice","Alumni+Sans+Inline+One","Amatic SC","Amita","Antic Didone","Anton","Architects Daughter","Archivo Black","Are You Serious","Arial","Arima Madurai","Arvo","Asap","Asset","Atomic Age","Audiowide","Bangers","Barlow Condensed","Bebas Neue","Berkshire Swash","Bevan","Bigelow Rules","Black Ops One","Bonbon","Boogaloo","Bowlby One SC","Bungee Shade","Butcherman","Cabin Sketch","Caesar Dressing","Carter One","Caveat","Cinzel Decorative","Codystar","Comfortaa","Coming Soon","Concert One","Cookie","Courgette","Creepster","Dancing Script","Diplomata SC","Domine","Eater","EB Garamond","Emblema One","Ewert","Fascinate Inline","Faster One","Finger Paint","Flavors","Fontdiner Swanky","Fredericka the Great","Frijole","Fugaz One","Glass Antiqua","Gloria Hallelujah","Gochi Hand","Great Vibes","Grenze Gotisch","Griffy","Handlee","Henny Penny","Iceberg","Indie Flower","Irish Grover","Italianno","Jolly Lodger","Kaushan Script","Kelly Slab","Kranky","Kumar One","Lobster","Londrina Shadow","Luckiest Guy","Macondo","MedievalSharp","Megrim","Metal Mania","Modak","Monoton","Mountains of Christmas","Mystery Quest","Nabla","Nosifer","Nothing You Could Do","Orbitron","Pacifico","Parisienne","Permanent Marker","Pinyon Script","Playfair Display","Press Start 2P","Righteous","Rubik Glitch","Sacramento","Satisfy","Shadows Into Light","Silkscreen","Special Elite","Syncopate","Ultra","UnifrakturMaguntia","VT323","Wallpoet","Zeyada","Montserrat","Nunito","Oswald","Spectral","Varela Round","Roboto Serif","Roboto Mono"];
+  const fontColors = ["#ff5555","#55ff55","#5555ff","#ffff55","#ff55ff","#55ffff","#ffaa00","#ff00aa","#aa00ff","#00ffaa","#ff8800","#8800ff","#00ff88","#ff0088","#88ff00"];
+  const fHeader = document.getElementById('custom-font-header');
+  const fText = document.getElementById('custom-font-text');
+  const fList = document.getElementById('custom-font-list');
+  const fNative = document.getElementById('fontFamily');
+  const fDropHidden = fNative; // hidden select for compatibility
+
+  // Build list
+  rawFonts.forEach(function(f, i){
+    const col = fontColors[i % fontColors.length];
+    const div = document.createElement('div');
+    div.className = 'font-opt';
+    div.dataset.value = f;
+    div.textContent = (i+1)+'. '+f;
+    div.style.cssText = 'padding:8px 10px; margin:2px 0; border-radius:5px; cursor:pointer; font-family:'+f+'; color:'+col+'; background:#111; border:1px solid #222; font-weight:bold;';
+    div.addEventListener('mouseenter', function(){ this.style.background='#222'; this.style.transform='scale(1.02)'; });
+    div.addEventListener('mouseleave', function(){ this.style.background='#111'; this.style.transform='scale(1)'; });
+    div.addEventListener('click', function(e){
+      e.stopPropagation();
+      const val = this.dataset.value;
+      fText.textContent = (i+1)+'. '+val;
+      fText.style.fontFamily = val;
+      fText.style.color = col;
+      fHeader.style.borderColor = col;
+      fHeader.style.color = col;
+      fHeader.style.boxShadow = '0 0 10px '+col;
+      // Update hidden native select and trigger change
+      // First ensure option exists in hidden select
+      let opt = Array.from(fNative.options).find(o=>o.value===val);
+      if(!opt){
+        opt = document.createElement('option'); opt.value=val; opt.textContent=val; fNative.appendChild(opt);
+      }
+      fNative.value = val;
+      if(typeof changeFont==='function') changeFont();
+      fList.style.display='none';
+      try{ localStorage.setItem('securics_font', val); }catch(e){}
+    });
+    fList.appendChild(div);
+    // Also add to hidden native select
+    const o = document.createElement('option'); o.value=f; o.textContent=(i+1)+'. '+f; o.style.color=col; o.style.fontFamily=f; fNative.appendChild(o);
+  });
+  fNative.value='Arial';
   
-  if(savedColor){
-    // Find name for color if not saved
-    if(!savedName){
-      const found = document.querySelector(`.neon-opt[data-value="${savedColor}"]`);
-      savedName = found ? found.dataset.name : savedColor;
+  fHeader.addEventListener('click', function(e){ e.stopPropagation(); const isHidden = fList.style.display==='none'||fList.style.display===''||getComputedStyle(fList).display==='none'; fList.style.display=isHidden?'block':'none'; document.getElementById('custom-neon-list').style.display='none'; });
+  
+  // Load saved font
+  try{
+    const savedFont = localStorage.getItem('securics_font');
+    if(savedFont){
+      const idx = rawFonts.indexOf(savedFont);
+      const col = fontColors[(idx>=0?idx:0) % fontColors.length];
+      fText.textContent = (idx>=0?idx+1:16)+'. '+savedFont;
+      fText.style.fontFamily = savedFont;
+      fText.style.color = col;
+      fHeader.style.borderColor = col;
+      fNative.value = savedFont;
+      if(typeof changeFont==='function') setTimeout(changeFont,100);
     }
-    updateHeader(savedColor, savedName, false);
-  } else {
-    updateHeader('#00FFFF','Cyán', false);
-  }
+  }catch(e){}
+  }catch(err){ console.error('font menu',err); }
 });
 </script>
 
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  // Betöltött jegyzetek mentésének biztosítása
+  try{
+    const ed = document.getElementById('editor');
+    if(ed){
+      ed.addEventListener('input', function(){
+        try{ if(typeof handleInput==='function') handleInput(); }catch(e){}
+      });
+      ed.addEventListener('change', function(){
+        try{ if(typeof handleInput==='function') handleInput(); }catch(e){}
+      });
+    }
+    // 5 másodpercenként auto mentés
+    setInterval(function(){
+      try{ if(typeof saveData==='function') saveData(); }catch(e){}
+    }, 5000);
+  }catch(e){}
+});
+</script>
 
 </body>
 </html>
